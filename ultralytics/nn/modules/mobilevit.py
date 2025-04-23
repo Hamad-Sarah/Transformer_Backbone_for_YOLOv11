@@ -134,49 +134,38 @@ class MobileViTv2Backbone(nn.Module):
         """
         return self._out_channels
 
+# filepath: /home/mrmfr/afterMidpointZaka/TASK3-YOLO-ViT-Backbone/ultralytics/nn/modules/mobilevit.py
+# ... existing code ...
+
 # Example Usage (for testing within this file)
 if __name__ == '__main__':
     if CVNETS_AVAILABLE:
         # Test with default settings (width_multiplier=1.0)
         print("Testing MobileViTv2Backbone (width_multiplier=1.0)...")
-        backbone = MobileViTv2Backbone(width_multiplier=1.0)
-        print(f"Output channels: {backbone.out_channels}")
 
-        # Expecting input similar to P2/4 output, e.g., [B, 128, H/4, W/4]
-        # For a 256x256 input to YOLO, P2/4 might be 64x64. Let's use that.
-        # The channel count needs to match the layer feeding into this backbone in YOLO.
-        # Let's assume the layer before this outputs 128 channels (like YOLOv11n layer 1)
-        dummy_input = torch.randn(1, 128, 64, 64)
-        print(f"Input shape: {dummy_input.shape}")
+        # --- Test: Assuming backbone takes image input ---
+        backbone_img_input = MobileViTv2Backbone(width_multiplier=1.0)
+        dummy_img_input = torch.randn(1, 3, 256, 256) # Standard image input
+        print(f"Input shape: {dummy_img_input.shape}")
 
         try:
-            output_features = backbone(dummy_input)
-            print(f"Obtained {len(output_features)} feature maps:")
-            for i, fm in enumerate(output_features):
-                print(f"  Feature map {i} (from index {backbone.return_indices[i]}) shape: {fm.shape}")
-
-            # Expected shapes for width_multiplier=1.0 and indices (2, 3, 4)
-            # Input: [1, 128, 64, 64] (Assumed input to backbone)
-            # MobileViTv2 internal processing starts from its conv_1 expecting 3 channels.
-            # THIS IS A PROBLEM: The wrapper needs to adapt the input channels.
-            # Let's rethink: The wrapper should replace the *entire* backbone section
-            # starting from the raw image input, or have an initial stem matching YOLO.
-
-            # --- REVISED APPROACH ---
-            # The backbone should likely take the raw image input (B, 3, H, W)
-            print("\n--- Revising Test: Assuming backbone takes image input ---")
-            backbone_img_input = MobileViTv2Backbone(width_multiplier=1.0)
-            dummy_img_input = torch.randn(1, 3, 256, 256) # Standard image input
-            print(f"Input shape: {dummy_img_input.shape}")
             output_features_img = backbone_img_input(dummy_img_input)
             print(f"Obtained {len(output_features_img)} feature maps:")
             # Expected shapes for indices (2, 3, 4) with 256x256 input:
-            # Index 2 (Layer 2 output): [1, 128, 64, 64] (P3/8)
-            # Index 3 (Layer 3 output): [1, 256, 32, 32] (P4/16)
-            # Index 4 (Layer 4 output): [1, 384, 16, 16] (P5/32)
+            # Index 2 (Layer 2 output): [1, 128, 32, 32] (P3/8) -> Corrected stride
+            # Index 3 (Layer 3 output): [1, 256, 16, 16] (P4/16) -> Corrected stride
+            # Index 4 (Layer 4 output): [1, 384, 8, 8]  (P5/32) -> Corrected stride
+            # Note: The exact output shapes depend on strides in MobileViTv2 config.
+            # Let's verify based on the config and forward pass:
+            # conv_1: stride 2 -> H/2, W/2
+            # layer_1: stride 1 -> H/2, W/2
+            # layer_2: stride 2 -> H/4, W/4
+            # layer_3: stride 2 -> H/8, W/8  (Index 2 output) -> [1, 128, 32, 32] for 256x256 input
+            # layer_4: stride 2 -> H/16, W/16 (Index 3 output) -> [1, 256, 16, 16] for 256x256 input
+            # layer_5: stride 2 -> H/32, W/32 (Index 4 output) -> [1, 384, 8, 8] for 256x256 input
             for i, fm in enumerate(output_features_img):
                 print(f"  Feature map {i} (from index {backbone_img_input.return_indices[i]}) shape: {fm.shape}")
-            print(f"Output channels property: {backbone_img_input.out_channels}") # Should be [128, 256, 384]
+            print(f"Output channels property: {backbone_img_input.out_channels}") # Should be [128, 256, 384] for width=1.0
 
         except Exception as e:
             print(f"Error during testing: {e}")
@@ -185,3 +174,5 @@ if __name__ == '__main__':
 
     else:
         print("Skipping MobileViTv2Backbone test because cvnets is not available.")
+
+# ... rest of file if any ...
