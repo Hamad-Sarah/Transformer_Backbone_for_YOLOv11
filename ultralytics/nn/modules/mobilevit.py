@@ -28,7 +28,7 @@ class MobileViTv2Backbone(nn.Module):
     Wrapper module for using MobileViTv2 (from cvnets) as a backbone feature extractor
     in the Ultralytics framework.
     """
-    def __init__(self, width_multiplier: float = 1.0, return_indices: Tuple[int] = (2, 3, 4), pretrained: bool = False):
+    def __init__(self, width_multiplier: float = 1.0, return_indices: Tuple[int] = (3, 4, 5), pretrained: bool = False):
         """
         Initializes the MobileViTv2Backbone wrapper.
 
