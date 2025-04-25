@@ -10,7 +10,7 @@ def test_mobilevit_integration():
     3. Verifies the output shapes of the feature maps.
     """
     # Load the YOLO model with the updated yolo11.yaml configuration
-    model_path = "/content/Transformer_Backbone_for_YOLOv11/ultralytics/cfg/models/11/yolo11.yaml"
+    model_path = "ultralytics/cfg/models/11/yolo11.yaml"
     model = DetectionModel(cfg=model_path, ch=3, nc=80, verbose=True)
 
     # Create dummy input (batch size 1, 3 channels, 256x256 image)
