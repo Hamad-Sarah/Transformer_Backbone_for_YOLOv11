@@ -8,6 +8,9 @@ from copy import deepcopy
 from pathlib import Path
 
 import torch
+print("Importing MobileViTv2Backbone")
+from ultralytics.nn.modules.mobilevit import MobileViTv2Backbone
+print("Imported MobileViTv2Backbone")
 
 from ultralytics.nn.modules import (
     AIFI,
@@ -1131,6 +1134,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SCDown,
             C2fCIB,
             A2C2f,
+            MobileViTv2Backbone,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1165,7 +1169,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 with contextlib.suppress(ValueError):
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
-        if m in base_modules:
+        if m is MobileViTv2Backbone:
+            # Extract arguments for MobileViTv2Backbone
+            width_multiplier, return_indices, pretrained = args
+            backbone = MobileViTv2Backbone(width_multiplier, return_indices, pretrained)
+            c2 = backbone.out_channels[-1]  # Set output channels to the last stage's channels
+            args = [width_multiplier, return_indices, pretrained]
+        elif m in base_modules:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
