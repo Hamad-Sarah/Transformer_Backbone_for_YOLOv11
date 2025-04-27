@@ -1170,7 +1170,18 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
 
             continue  # Move to the next layer
-        if m in base_modules:
+        if m is SPPF:
+            c1, c2, k = args  # Unpack the arguments
+            m_ = SPPF(c1, c2, k)  # Initialize the SPPF layer
+            m_.np = sum(x.numel() for x in m_.parameters())  # Number of parameters
+            m_.i, m_.f, m_.type = i, f, 'SPPF'  # Metadata for the layer
+            layers.append(m_)  # Add the layer to the model
+            ch.append(c2)  # Update the `ch` list with the output channels
+            if verbose:
+                LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
+            continue  # Move to the next layer
+        
+        elif m in base_modules:
             c1 = ch[f] if isinstance(f, int) else sum([ch[x] for x in f]) if isinstance(f, list) else ch[f]
             c2 = args[0]
             if c2 != nc:
