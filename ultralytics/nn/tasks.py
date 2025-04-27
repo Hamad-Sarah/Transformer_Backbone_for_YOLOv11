@@ -1142,23 +1142,26 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             layers.append(m_)
 
             # Update `ch` with the actual feature maps (not just channel dimensions)
-            ch.append(backbone)  # Store the backbone module itself
+            if i == 0:
+                ch = [backbone]  # Replace the initial input channels with the backbone module
+            else:
+                ch.append(backbone)  # Append the backbone module
 
             print(f"MobileViTv2Backbone output channels: {c2_list}")  # Debug: Print output channels
             continue  # Move to the next layer
-
+        
         if m is Select:
             prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2Backbone)
             select_index = args[0]  # e.g., 0, 1, 2
 
             # Retrieve the actual feature maps from the backbone
             backbone = ch[prev_layer_idx]
-            if isinstance(backbone, MobileViTv2Backbone):
+            if isinstance(ch[prev_layer_idx], MobileViTv2Backbone):
+                backbone = ch[prev_layer_idx]
                 feature_maps = backbone.forward(torch.zeros(1, 3, 640, 640))  # Example input for debugging
                 c2 = feature_maps[select_index].shape[1]  # Get the selected feature map's channels
             else:
-                raise ValueError(f"Expected MobileViTv2Backbone at index {prev_layer_idx}, but got {type(backbone)}")
-
+                raise ValueError(f"Expected MobileViTv2Backbone at index {prev_layer_idx}, but got {type(ch[prev_layer_idx])}")
             # Append the Select module
             m_ = m(*args)
             m_.np = sum(x.numel() for x in m_.parameters())
@@ -1170,7 +1173,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             print(f"Select layer {i}: selected index={select_index}, output channels={c2}")  # Debug: Print selected channels
             continue  # Move to the next layer
-        
+
         if m is SPPF:
             c1, c2, k = args  # Unpack the arguments
             m_ = SPPF(c1, c2, k)  # Initialize the SPPF layer
