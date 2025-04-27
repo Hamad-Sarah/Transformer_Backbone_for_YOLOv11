@@ -1149,7 +1149,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
 
             continue  # move to next layer
-
+        
+        if m is Select:
+            prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2)
+            select_index = args[0]  # e.g., 0, 1, 2
+            c2 = ch[prev_layer_idx][select_index]  # Get actual channels from the selected feature map
 
         if m in base_modules:
             c1 = ch[f] if isinstance(f, int) else sum([ch[x] for x in f]) if isinstance(f, list) else ch[f]
