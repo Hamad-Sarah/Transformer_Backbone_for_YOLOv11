@@ -11,6 +11,7 @@ import torch
 print("Importing MobileViTv2Backbone")
 from ultralytics.nn.modules.mobilevit import MobileViTv2Backbone
 print("Imported MobileViTv2Backbone")
+from ultralytics.nn.modules.select import Select
 
 from ultralytics.nn.modules import (
     AIFI,
