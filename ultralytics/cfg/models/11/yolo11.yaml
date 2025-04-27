@@ -20,7 +20,7 @@ backbone:
   - [0, 1, Select, [0]]   # select P3 (stride 8, 256 channels)
   - [0, 1, Select, [1]]   # select P4 (stride 16, 384 channels)
   - [0, 1, Select, [2]]   # select P5 (stride 32, 512 channels)
-  - [3, 1, SPPF, [512, 5]]  # SPPF on P5
+  - [3, 1, SPPF, [512, 128, 5]] # SPPF on P5
 
 # Neck + Head
 head:
