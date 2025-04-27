@@ -1131,30 +1131,45 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         if m is MobileViTv2Backbone:
             width_multiplier, return_indices, pretrained = args
             backbone = MobileViTv2Backbone(width_multiplier, return_indices, pretrained)
-            c2_list = backbone.out_channels  # [256, 384, 512]
+            c2_list = backbone.out_channels  # [256, 384, 512] (example output channels)
 
-            # Append module
+            # Append the backbone module
             m_ = backbone
             m_.np = sum(x.numel() for x in m_.parameters())
-            m_.i, m_.f, m_.type = i, f, 'MobileViTv2Backbone'  # <=== fix here
+            m_.i, m_.f, m_.type = i, f, 'MobileViTv2Backbone'
             layers.append(m_)
 
-            # Important: Add each output channel to `ch`
+            # Update `ch` with all output channels
             if i == 0:
-                ch = []
-            for c_out in c2_list:
-                ch.append(c_out)
+                ch = []  # Reset `ch` for the first layer
+            ch.append(c2_list)  # Add the list of output channels to `ch`
 
             if verbose:
                 LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
 
-            continue  # move to next layer
-        
-        if m is Select:
-            prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2)
-            select_index = args[0]  # e.g., 0, 1, 2
-            c2 = ch[prev_layer_idx][select_index]  # Get actual channels from the selected feature map
+            continue  # Move to the next layer
 
+        if m is Select:
+            prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2Backbone)
+            select_index = args[0]  # e.g., 0, 1, 2
+            if isinstance(ch[prev_layer_idx], list):
+                c2 = ch[prev_layer_idx][select_index]  # Get the selected feature map's channels
+            else:
+                raise ValueError(f"Expected a list of channels from layer {prev_layer_idx}, but got {ch[prev_layer_idx]}")
+
+            # Append the Select module
+            m_ = m(*args)
+            m_.np = sum(x.numel() for x in m_.parameters())
+            m_.i, m_.f, m_.type = i, f, 'Select'
+            layers.append(m_)
+
+            # Update `ch` with the selected channel
+            ch.append(c2)
+
+            if verbose:
+                LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
+
+            continue  # Move to the next layer
         if m in base_modules:
             c1 = ch[f] if isinstance(f, int) else sum([ch[x] for x in f]) if isinstance(f, list) else ch[f]
             c2 = args[0]
