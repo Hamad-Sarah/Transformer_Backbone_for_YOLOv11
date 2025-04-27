@@ -1170,11 +1170,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                     args[j] = locals()[a] if a in locals() else ast.literal_eval(a)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
         if m is MobileViTv2Backbone:
-            # Extract arguments for MobileViTv2Backbone
             width_multiplier, return_indices, pretrained = args
             backbone = MobileViTv2Backbone(width_multiplier, return_indices, pretrained)
-            c2 = backbone.out_channels[-1]  # Set output channels to the last stage's channels
-            args = [width_multiplier, return_indices, pretrained]
+            c2_list = backbone.out_channels  # [256, 384, 512]
+            for c2_val in c2_list:
+                ch.append(c2_val)  # add each output to the channel list
+            layers.append(backbone)  # add the backbone itself to layers
+            if verbose:
+                LOGGER.info(f"{i:>3}{str(f):>20}{n:>3}{sum(p.numel() for p in backbone.parameters()):10}  {backbone.__class__.__name__:<45}{str(args):<30}")
+            continue  # move to the next layer directly
         elif m in base_modules:
             c1, c2 = ch[f], args[0]
             if c2 != nc:  # if c2 not equal to number of classes (i.e. for Classify() output)
