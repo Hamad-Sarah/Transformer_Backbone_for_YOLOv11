@@ -123,7 +123,7 @@ class MobileViTv2Backbone(nn.Module):
 
         # Select only the feature maps specified by self.return_indices
         selected_features = [all_feature_maps[i] for i in self.return_indices]
-
+        print(f"MobileViTv2Backbone output: {[f.shape for f in selected_features]}")
         return selected_features
 
     @property

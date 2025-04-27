@@ -1128,6 +1128,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
 
+        print(f"Layer {i}: {m}, from={f}, args={args}, ch={ch}")
         if m is MobileViTv2Backbone:
             width_multiplier, return_indices, pretrained = args
             backbone = MobileViTv2Backbone(width_multiplier, return_indices, pretrained)
@@ -1180,7 +1181,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if verbose:
                 LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
             continue  # Move to the next layer
-        
+
         elif m in base_modules:
             c1 = ch[f] if isinstance(f, int) else sum([ch[x] for x in f]) if isinstance(f, list) else ch[f]
             c2 = args[0]
