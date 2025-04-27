@@ -16,28 +16,23 @@ scales: # model compound scaling constants, i.e. 'model=yolo11n.yaml' will call 
 
 # YOLO11n backbone
 backbone:
-  # [from, repeats, module, args]
-  - [-1, 1, MobileViTv2Backbone, [1.0, [3, 4, 5], False]]  # Replace all layers up to SPPF
-  - [-1, 1, SPPF, [512, 5]]  # SPPF layer remains
-  - [-1, 2, C2PSA, [512]]    # Additional layers after SPPF
+  # Use MobileViTv2Backbone instead of original Conv/C3/CSP layers
+  - [-1, 1, MobileViTv2Backbone, [1.0, [3, 4, 5], False]]  # outputs P3/8, P4/16, P5/32 (256,384,512 ch)
+  - [-1, 1, SPPF, [512, 5]]       # updated: input 512 -> output 512
+  - [-1, 2, C2PSA, [512]]        # two CSP layers on 512-ch input
 
-# YOLO11n head
+
 head:
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 1], 1, Concat, [1]] # cat backbone P4
-  - [-1, 2, C3k2, [512, False]] # 13
-
+  - [[-1, 1], 1, Concat, [1]]    # concat with P4 backbone feature (384 ch)
+  - [-1, 2, C3k2, [512, False]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 0], 1, Concat, [1]] # cat backbone P3
-  - [-1, 2, C3k2, [256, False]] # 16 (P3/8-small)
-
-  - [-1, 1, Conv, [256, 3, 2]]
-  - [[-1, 1], 1, Concat, [1]] # cat head P4
-  - [-1, 2, C3k2, [512, False]] # 19 (P4/16-medium)
-
-  - [-1, 1, Conv, [512, 3, 2]]
-  - [[-1, 0], 1, Concat, [1]] # cat head P5
-  - [-1, 2, C3k2, [1024, True]] # 22 (P5/32-large)
-
-  - [[8, 11, 14], Detect, [nc, [64, 128, 256]]]  # Detect(P3, P4, P5)
+  - [[-1, 0], 1, Concat, [1]]    # concat with P3 backbone feature (256 ch)
+  - [-1, 2, C3k2, [256, False]]
+  - [-1, 1, Conv,  [256, 3, 2]]
+  - [[-1, 1], 1, Concat, [1]]    # concat with P4 backbone (384 ch) again
+  - [-1, 2, C3k2, [512, False]]
+  - [[-1, 2], 1, Concat, [1]]    # concat with P5 (512 ch) final feature
+  - [-1, 2, C3k2, [512, True]]
+  - [[12, 15, 17], 1, Detect, [nc]]  # Detect on P3/P4/P5 (channels 256, 512, 512)
 
