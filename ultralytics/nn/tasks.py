@@ -1129,6 +1129,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         n = n_ = max(round(n * depth), 1) if n > 1 else n  # depth gain
 
         print(f"Layer {i}: {m}, from={f}, args={args}, ch={ch}")
+
         if m is MobileViTv2Backbone:
             width_multiplier, return_indices, pretrained = args
             backbone = MobileViTv2Backbone(width_multiplier, return_indices, pretrained)
@@ -1140,23 +1141,23 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             m_.i, m_.f, m_.type = i, f, 'MobileViTv2Backbone'
             layers.append(m_)
 
-            # Update `ch` with all output channels
-            if i == 0:
-                ch = []  # Reset `ch` for the first layer
-            ch.append(c2_list)  # Add the list of output channels to `ch`
+            # Update `ch` with the actual feature maps (not just channel dimensions)
+            ch.append(backbone)  # Store the backbone module itself
 
-            if verbose:
-                LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
-
+            print(f"MobileViTv2Backbone output channels: {c2_list}")  # Debug: Print output channels
             continue  # Move to the next layer
 
         if m is Select:
             prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2Backbone)
             select_index = args[0]  # e.g., 0, 1, 2
-            if isinstance(ch[prev_layer_idx], list):
-                c2 = ch[prev_layer_idx][select_index]  # Get the selected feature map's channels
+
+            # Retrieve the actual feature maps from the backbone
+            backbone = ch[prev_layer_idx]
+            if isinstance(backbone, MobileViTv2Backbone):
+                feature_maps = backbone.forward(torch.zeros(1, 3, 640, 640))  # Example input for debugging
+                c2 = feature_maps[select_index].shape[1]  # Get the selected feature map's channels
             else:
-                raise ValueError(f"Expected a list of channels from layer {prev_layer_idx}, but got {ch[prev_layer_idx]}")
+                raise ValueError(f"Expected MobileViTv2Backbone at index {prev_layer_idx}, but got {type(backbone)}")
 
             # Append the Select module
             m_ = m(*args)
@@ -1164,13 +1165,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             m_.i, m_.f, m_.type = i, f, 'Select'
             layers.append(m_)
 
-            # Update `ch` with the selected channel
+            # Update `ch` with the selected feature map
             ch.append(c2)
 
-            if verbose:
-                LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10}  {m_.type:<45}{str(args):<30}")
-
+            print(f"Select layer {i}: selected index={select_index}, output channels={c2}")  # Debug: Print selected channels
             continue  # Move to the next layer
+        
         if m is SPPF:
             c1, c2, k = args  # Unpack the arguments
             m_ = SPPF(c1, c2, k)  # Initialize the SPPF layer
