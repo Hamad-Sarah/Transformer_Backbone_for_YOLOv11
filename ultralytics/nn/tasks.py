@@ -1143,26 +1143,23 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             # Update `ch` with the actual feature maps (not just channel dimensions)
             if i == 0:
-                ch = [backbone]  # Replace the initial input channels with the backbone module
+                ch = backbone.forward(torch.zeros(1, 3, 640, 640))  # Replace input channels with feature maps
             else:
-                ch.append(backbone)  # Append the backbone module
+                ch.extend(backbone.forward(torch.zeros(1, 3, 640, 640)))  # Append feature maps
 
             print(f"MobileViTv2Backbone output channels: {c2_list}")  # Debug: Print output channels
             continue  # Move to the next layer
-        
+
         if m is Select:
             prev_layer_idx = f  # From index (e.g., 0 for MobileViTv2Backbone)
             select_index = args[0]  # e.g., 0, 1, 2
 
             # Retrieve the actual feature maps from the backbone
-            backbone = ch[prev_layer_idx]
-            if isinstance(ch[prev_layer_idx], MobileViTv2Backbone):
-                backbone = ch[prev_layer_idx]
-                feature_maps = backbone.forward(torch.zeros(1, 3, 640, 640))  # Example input for debugging
+            if isinstance(ch[prev_layer_idx], torch.Tensor):
+                feature_maps = ch  # Use the feature maps directly
                 c2 = feature_maps[select_index].shape[1]  # Get the selected feature map's channels
             else:
-                raise ValueError(f"Expected MobileViTv2Backbone at index {prev_layer_idx}, but got {type(ch[prev_layer_idx])}")
-            # Append the Select module
+                raise ValueError(f"Expected feature maps at index {prev_layer_idx}, but got {type(ch[prev_layer_idx])}")
             m_ = m(*args)
             m_.np = sum(x.numel() for x in m_.parameters())
             m_.i, m_.f, m_.type = i, f, 'Select'
