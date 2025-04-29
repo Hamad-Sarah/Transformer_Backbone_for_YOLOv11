@@ -1143,9 +1143,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             # Update `ch` with the actual feature maps (not just channel dimensions)
             if i == 0:
-                ch = [backbone.out_channels ] # Replace input channels with output channels
+                ch = backbone.forward(torch.zeros(1, 3, 640, 640))  # Replace input channels with feature maps
             else:
-                ch.append(backbone.out_channels)  # Append output channels
+                ch.extend(backbone.forward(torch.zeros(1, 3, 640, 640)))  # Append feature maps
             print(f"Updated ch list after MobileViTv2Backbone: {ch}")
             continue  # Move to the next layer
 
@@ -1155,11 +1155,11 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             # Retrieve the actual feature maps from the backbone
             if isinstance(ch[prev_layer_idx], list):
-                c2 = ch[prev_layer_idx][select_index]  # Get the selected feature map's channels
-            elif isinstance(ch[prev_layer_idx], int):
-                raise ValueError(f"Expected a list of channels at index {prev_layer_idx}, but got an integer. Check the backbone output.")
+                feature_maps = ch[prev_layer_idx]  # Retrieve the feature maps
+                c2 = feature_maps[select_index].shape[1]  # Get the selected feature map's channels
             else:
-                raise ValueError(f"Unexpected type at index {prev_layer_idx}: {type(ch[prev_layer_idx])}")
+                raise ValueError(f"Expected a list of feature maps at index {prev_layer_idx}, but got {type(ch[prev_layer_idx])}")
+
             m_ = m(*args)
             m_.np = sum(x.numel() for x in m_.parameters())
             m_.i, m_.f, m_.type = i, f, 'Select'
