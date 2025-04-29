@@ -1143,10 +1143,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             # Update `ch` with the actual feature maps (not just channel dimensions)
             if i == 0:
-                ch = backbone.out_channels  # Replace input channels with output channels
+                ch = [backbone.out_channels ] # Replace input channels with output channels
             else:
-                ch.extend(backbone.out_channels)  # Append output channels
-            print(f"MobileViTv2Backbone output channels: {c2_list}")  # Debug: Print output channels
+                ch.append(backbone.out_channels)  # Append output channels
+            print(f"Updated ch list after MobileViTv2Backbone: {ch}")
             continue  # Move to the next layer
 
         if m is Select:
@@ -1156,8 +1156,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             # Retrieve the actual feature maps from the backbone
             if isinstance(ch[prev_layer_idx], list):
                 c2 = ch[prev_layer_idx][select_index]  # Get the selected feature map's channels
+            elif isinstance(ch[prev_layer_idx], int):
+                raise ValueError(f"Expected a list of channels at index {prev_layer_idx}, but got an integer. Check the backbone output.")
             else:
-                raise ValueError(f"Expected a list of channels at index {prev_layer_idx}, but got {type(ch[prev_layer_idx])}")
+                raise ValueError(f"Unexpected type at index {prev_layer_idx}: {type(ch[prev_layer_idx])}")
             m_ = m(*args)
             m_.np = sum(x.numel() for x in m_.parameters())
             m_.i, m_.f, m_.type = i, f, 'Select'
@@ -1165,7 +1167,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
 
             # Update `ch` with the selected feature map
             ch.append(c2)
-
+            print(f"Updated ch list after Select layer {i}: {ch}")
             print(f"Select layer {i}: selected index={select_index}, output channels={c2}")  # Debug: Print selected channels
             continue  # Move to the next layer
 
