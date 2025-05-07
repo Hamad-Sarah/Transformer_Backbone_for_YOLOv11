@@ -1154,7 +1154,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             select_index = args[0]  # e.g., 0, 1, 2
 
             # Retrieve the actual feature maps from the backbone
-            if isinstance(ch[prev_layer_idx], list):
+            if isinstance(ch[prev_layer_idx], torch.Tensor):
                 feature_maps = ch[prev_layer_idx]  # Retrieve the feature maps
                 c2 = feature_maps[select_index].shape[1]  # Get the selected feature map's channels
             else:
